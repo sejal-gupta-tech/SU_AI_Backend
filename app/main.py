@@ -7,7 +7,6 @@ from app.core.database import connect_to_mongo, close_mongo_connection
 from app.api.api_router import api_router
 from app.api.endpoints.brand import router as brand_router
 from app.api.endpoints.products import router as products_router
-from app.api.endpoints.auth import router as auth_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,7 +35,6 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api/v1")
 app.include_router(brand_router)
 app.include_router(products_router)
-app.include_router(auth_router)
 
 @app.get("/")
 async def root():
