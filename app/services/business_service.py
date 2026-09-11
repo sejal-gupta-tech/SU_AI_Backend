@@ -1,7 +1,7 @@
 from bson import ObjectId
 from app.core.database import get_database
 from app.models.business import Business
-from app.schemas.business import BusinessCreate
+from app.schemas.business import BusinessCreate, BusinessUpdate
 
 class BusinessService:
     @staticmethod
@@ -37,3 +37,19 @@ class BusinessService:
         if doc:
             return Business(**doc)
         return None
+
+    @staticmethod
+    async def update_business(owner_id: str, business_in: BusinessUpdate) -> Business | None:
+        collection = await BusinessService.get_collection()
+        update_data = business_in.model_dump(exclude_unset=True)
+        if not update_data:
+            return await BusinessService.get_business_by_owner(owner_id)
+            
+        await collection.update_one({"owner_id": owner_id}, {"$set": update_data})
+        return await BusinessService.get_business_by_owner(owner_id)
+
+    @staticmethod
+    async def delete_business(owner_id: str) -> bool:
+        collection = await BusinessService.get_collection()
+        result = await collection.delete_one({"owner_id": owner_id})
+        return result.deleted_count > 0

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.schemas.business import BusinessCreate, BusinessResponse
+from app.schemas.business import BusinessCreate, BusinessResponse, BusinessUpdate
 from app.services.business_service import BusinessService
 from app.core.security import get_current_user
 from app.models.user import User
@@ -24,3 +24,19 @@ async def get_my_business(current_user: User = Depends(get_current_user)):
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
     return business
+
+@router.put("/me", response_model=BusinessResponse)
+async def update_my_business(
+    business_in: BusinessUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    business = await BusinessService.update_business(str(current_user.id), business_in)
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+    return business
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_my_business(current_user: User = Depends(get_current_user)):
+    success = await BusinessService.delete_business(str(current_user.id))
+    if not success:
+        raise HTTPException(status_code=404, detail="Business not found")
