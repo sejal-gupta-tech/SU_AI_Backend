@@ -1,30 +1,155 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
-from app.schemas.product import ProductCreate, ProductResponse
-from app.services.product_service import ProductService
-from app.services.business_service import BusinessService
+from fastapi import APIRouter, Depends, status, File, UploadFile
+
+from app.schemas.product import (
+    ProductCreate,
+    ProductUpdate
+)
+
+from app.services.product_service import (
+    create_product,
+    get_products,
+    get_product,
+    update_product,
+    delete_product
+)
+
 from app.core.security import get_current_user
-from app.models.user import User
+from app.core.database import get_database
+from app.utils.upload import save_image
 
-router = APIRouter()
 
-@router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
-async def create_product(
-    product_in: ProductCreate,
-    current_user: User = Depends(get_current_user)
+router = APIRouter(
+    prefix="/api/products",
+    tags=["Products"]
+)
+
+
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED
+)
+async def create(
+    data: ProductCreate,
+    current_user=Depends(get_current_user),
+    db=Depends(get_database)
 ):
-    business = await BusinessService.get_business_by_owner(str(current_user.id))
-    if not business:
-        raise HTTPException(status_code=404, detail="Business not found")
-        
-    product = await ProductService.create_product(str(business.id), product_in)
-    return product
+    business_id = str(
+        current_user["business_id"]
+    )
 
-@router.get("/", response_model=List[ProductResponse])
-async def get_my_products(current_user: User = Depends(get_current_user)):
-    business = await BusinessService.get_business_by_owner(str(current_user.id))
-    if not business:
-        raise HTTPException(status_code=404, detail="Business not found")
-        
-    products = await ProductService.get_products_by_business(str(business.id))
-    return products
+    product = await create_product(
+        db,
+        business_id,
+        data
+    )
+
+    return {
+        "success": True,
+        "message": "Product created successfully",
+        "data": product
+    }
+
+
+@router.get("")
+async def list_products(
+    current_user=Depends(get_current_user),
+    db=Depends(get_database)
+):
+    business_id = str(
+        current_user["business_id"]
+    )
+
+    products = await get_products(
+        db,
+        business_id
+    )
+
+    return {
+        "success": True,
+        "message": "Products fetched successfully",
+        "data": products
+    }
+
+
+@router.get("/{product_id}")
+async def get_single_product(
+    product_id: str,
+    current_user=Depends(get_current_user),
+    db=Depends(get_database)
+):
+    business_id = str(
+        current_user["business_id"]
+    )
+
+    product = await get_product(
+        db,
+        business_id,
+        product_id
+    )
+
+    return {
+        "success": True,
+        "message": "Product fetched successfully",
+        "data": product
+    }
+
+
+@router.put("/{product_id}")
+async def update(
+    product_id: str,
+    data: ProductUpdate,
+    current_user=Depends(get_current_user),
+    db=Depends(get_database)
+):
+    business_id = str(
+        current_user["business_id"]
+    )
+
+    product = await update_product(
+        db,
+        business_id,
+        product_id,
+        data
+    )
+
+    return {
+        "success": True,
+        "message": "Product updated successfully",
+        "data": product
+    }
+
+
+@router.delete("/{product_id}")
+async def delete(
+    product_id: str,
+    current_user=Depends(get_current_user),
+    db=Depends(get_database)
+):
+    business_id = str(
+        current_user["business_id"]
+    )
+
+    return await delete_product(
+        db,
+        business_id,
+        product_id
+    )
+
+
+@router.post("/upload-image")
+async def upload_product_image(
+    file: UploadFile = File(...),
+    current_user=Depends(get_current_user)
+):
+    image_url = await save_image(
+        file,
+        "products"
+    )
+
+    return {
+        "success": True,
+        "message": "Product image uploaded successfully",
+        "data": {
+            "image_url": image_url
+        }
+    }

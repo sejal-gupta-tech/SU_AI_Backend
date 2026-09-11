@@ -1,31 +1,105 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from app.schemas.brand import BrandKitCreate, BrandKitResponse
-from app.services.brand_service import BrandKitService
-from app.services.business_service import BusinessService
+from fastapi import APIRouter, Depends, status, File, UploadFile
+
+from app.schemas.brand import (
+    BrandCreate,
+    BrandUpdate
+)
+
+from app.services.brand_service import (
+    create_brand_kit,
+    get_brand_kit,
+    update_brand_kit
+)
+
 from app.core.security import get_current_user
-from app.models.user import User
+from app.core.database import get_database
+from app.utils.upload import save_image
 
-router = APIRouter()
 
-@router.post("/", response_model=BrandKitResponse, status_code=status.HTTP_201_CREATED)
-async def create_brand_kit(
-    brand_in: BrandKitCreate,
-    current_user: User = Depends(get_current_user)
+router = APIRouter(
+    prefix="/api/brand",
+    tags=["Brand Kit"]
+)
+
+
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED
+)
+async def create_brand(
+    data: BrandCreate,
+    current_user=Depends(get_current_user),
+    db=Depends(get_database)
 ):
-    business = await BusinessService.get_business_by_owner(str(current_user.id))
-    if not business:
-        raise HTTPException(status_code=404, detail="Business not found")
-        
-    brand_kit = await BrandKitService.create_brand_kit(str(business.id), brand_in)
-    return brand_kit
+    business_id = str(current_user["business_id"])
 
-@router.get("/", response_model=BrandKitResponse)
-async def get_my_brand_kit(current_user: User = Depends(get_current_user)):
-    business = await BusinessService.get_business_by_owner(str(current_user.id))
-    if not business:
-        raise HTTPException(status_code=404, detail="Business not found")
-        
-    brand_kit = await BrandKitService.get_brand_kit_by_business(str(business.id))
-    if not brand_kit:
-        raise HTTPException(status_code=404, detail="Brand kit not found")
-    return brand_kit
+    brand = await create_brand_kit(
+        db,
+        business_id,
+        data
+    )
+
+    return {
+        "success": True,
+        "message": "Brand Kit created successfully",
+        "data": brand
+    }
+
+
+@router.get("")
+async def get_brand(
+    current_user=Depends(get_current_user),
+    db=Depends(get_database)
+):
+    business_id = str(current_user["business_id"])
+
+    brand = await get_brand_kit(
+        db,
+        business_id
+    )
+
+    return {
+        "success": True,
+        "message": "Brand Kit fetched successfully",
+        "data": brand
+    }
+
+
+@router.put("")
+async def update_brand(
+    data: BrandUpdate,
+    current_user=Depends(get_current_user),
+    db=Depends(get_database)
+):
+    business_id = str(current_user["business_id"])
+
+    brand = await update_brand_kit(
+        db,
+        business_id,
+        data
+    )
+
+    return {
+        "success": True,
+        "message": "Brand Kit updated successfully",
+        "data": brand
+    }
+
+
+@router.post("/upload-logo")
+async def upload_brand_logo(
+    file: UploadFile = File(...),
+    current_user=Depends(get_current_user)
+):
+    logo_url = await save_image(
+        file,
+        "brand"
+    )
+
+    return {
+        "success": True,
+        "message": "Brand logo uploaded successfully",
+        "data": {
+            "logo_url": logo_url
+        }
+    }

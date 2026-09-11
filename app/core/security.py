@@ -41,17 +41,15 @@ from fastapi.security import OAuth2PasswordBearer
 from bson import ObjectId
 from app.models.user import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     if not token:
-        # For development/testing since the auth routes are missing, we can return a mock user
-        # Or we can just raise unauthorized. Let's raise unauthorized to be strict.
         raise credentials_exception
         
     payload = decode_access_token(token)
@@ -69,5 +67,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     if user_doc is None:
         raise credentials_exception
         
-    return User(**user_doc)
-
+    # Get the user's business
+    business = await db["businesses"].find_one({"owner_id": str(user_doc["_id"])})
+    
+    # Return a dict so endpoints can do current_user["business_id"]
+    return {
+        "id": str(user_doc["_id"]),
+        "name": user_doc["name"],
+        "email": user_doc["email"],
+        "business_id": str(business["_id"]) if business else None
+    }

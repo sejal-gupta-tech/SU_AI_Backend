@@ -1,7 +1,9 @@
 from typing import Dict, Any
 from app.services.business_service import BusinessService
-from app.services.brand_service import BrandKitService
-from app.services.product_service import ProductService
+from app.services.brand_service import get_brand_kit
+from app.services.product_service import get_products
+from app.core.database import get_database
+
 
 class BusinessContextService:
     @staticmethod
@@ -13,8 +15,7 @@ class BusinessContextService:
         if not business:
             raise ValueError(f"Business {business_id} not found.")
 
-        brand_kit = await BrandKitService.get_brand_kit_by_business(business_id)
-        products = await ProductService.get_products_by_business(business_id)
+        db = get_database()
 
         context = {
             "business": {
@@ -28,23 +29,36 @@ class BusinessContextService:
             "products": []
         }
 
-        if brand_kit:
+        # Get brand kit (returns None if not found, suppress 404)
+        try:
+            brand_kit = await get_brand_kit(db, business_id)
             context["brand"] = {
-                "tone": brand_kit.brand_voice,
-                "tagline": brand_kit.tagline,
-                "target_audience": brand_kit.target_audience
+                "tone": brand_kit.get("tone"),
+                "target_audience": brand_kit.get("target_audience"),
+                "primary_color": brand_kit.get("primary_color"),
+                "secondary_color": brand_kit.get("secondary_color"),
+                "font": brand_kit.get("font"),
+                "social_style": brand_kit.get("social_style"),
             }
+        except Exception:
+            pass
 
-        for product in products:
-            context["products"].append({
-                "id": str(product.id),
-                "name": product.name,
-                "price": product.price,
-                "sale_price": product.sale_price,
-                "sizes": product.sizes,
-                "colors": product.colors,
-                "stock": product.stock,
-                "category": product.category
-            })
+        # Get products
+        try:
+            products = await get_products(db, business_id)
+            for product in products:
+                context["products"].append({
+                    "id": product.get("id"),
+                    "name": product.get("name"),
+                    "description": product.get("description"),
+                    "price": product.get("price"),
+                    "sale_price": product.get("sale_price"),
+                    "sizes": product.get("sizes", []),
+                    "colors": product.get("colors", []),
+                    "stock": product.get("stock"),
+                    "image_url": product.get("image_url"),
+                })
+        except Exception:
+            pass
 
         return context
