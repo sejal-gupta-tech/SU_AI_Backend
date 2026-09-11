@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+venv/
+env/
+ENV/
+
+# pytest
+.pytest_cache/
+
+# Ruff / Linters
+.ruff_cache/
+
+# OS generated files
+.DS_Store
+Thumbs.db
