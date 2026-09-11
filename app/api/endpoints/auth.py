@@ -1,69 +1,47 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-from bson import ObjectId
-from datetime import timedelta
+from fastapi import APIRouter, Depends, status
+from app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse
+from app.services.auth_service import AuthService
+from app.core.security import create_access_token, get_current_user
+from app.models.user import User
 
-from app.core.security import verify_password, get_password_hash, create_access_token
-from app.core.database import get_database
+router = APIRouter()
 
-router = APIRouter(prefix="/api/auth", tags=["Auth"])
+@router.post("/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+async def signup(user_in: UserCreate):
+    user = await AuthService.create_user(user_in)
+    
+    # Generate JWT
+    access_token = create_access_token(subject=str(user.id))
+    
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse(
+            id=str(user.id),
+            name=user.name,
+            email=user.email
+        )
+    )
 
-@router.post("/register")
-async def register(data: dict, db=Depends(get_database)):
-    # Basic mock registration
-    existing_user = await db["users"].find_one({"email": data.get("email")})
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-        
-    hashed_password = get_password_hash(data.get("password", "password"))
-    user = {
-        "name": data.get("name", "Test User"),
-        "email": data.get("email"),
-        "hashed_password": hashed_password
-    }
-    result = await db["users"].insert_one(user)
-    user_id = str(result.inserted_id)
+@router.post("/login", response_model=TokenResponse)
+async def login(user_in: UserLogin):
+    user = await AuthService.authenticate_user(user_in)
     
-    # Auto-create a business for this user
-    business = {
-        "owner_id": user_id,
-        "name": f"{user['name']}'s Business",
-        "category": "Retail",
-        "target_customer": "Everyone"
-    }
-    await db["businesses"].insert_one(business)
+    # Generate JWT
+    access_token = create_access_token(subject=str(user.id))
     
-    return {"success": True, "message": "User registered successfully"}
+    return TokenResponse(
+        access_token=access_token,
+        user=UserResponse(
+            id=str(user.id),
+            name=user.name,
+            email=user.email
+        )
+    )
 
-@router.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_database)):
-    # Find user
-    user = await db["users"].find_one({"email": form_data.username})
-    
-    # If no user exists yet in the whole database (first run), let's auto-create one for testing
-    if not user:
-        if await db["users"].count_documents({}) == 0:
-            hashed_password = get_password_hash(form_data.password)
-            user = {
-                "name": "Test User",
-                "email": form_data.username,
-                "hashed_password": hashed_password
-            }
-            result = await db["users"].insert_one(user)
-            user["_id"] = result.inserted_id
-            
-            business = {
-                "owner_id": str(user["_id"]),
-                "name": "Test Business",
-                "category": "Retail"
-            }
-            await db["businesses"].insert_one(business)
-        else:
-            raise HTTPException(status_code=400, detail="Incorrect email or password")
-    else:
-        if not verify_password(form_data.password, user["hashed_password"]):
-            raise HTTPException(status_code=400, detail="Incorrect email or password")
-            
-    access_token = create_access_token(subject=str(user["_id"]))
-    
-    return {"access_token": access_token, "token_type": "bearer"}
+@router.get("/me", response_model=UserResponse)
+async def get_me(current_user: User = Depends(get_current_user)):
+    return UserResponse(
+        id=str(current_user.id),
+        name=current_user.name,
+        email=current_user.email
+    )
