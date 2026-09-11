@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection
 from app.api.api_router import api_router
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -31,6 +32,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+
 
 @app.get("/")
 async def root():
