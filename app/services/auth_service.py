@@ -30,8 +30,9 @@ class AuthService:
         hashed_password = get_password_hash(user_in.password)
         collection = await AuthService.get_collection()
         
+        user_name = user_in.name or user_in.fullName or user_in.full_name or "User"
         user = User(
-            name=user_in.name,
+            name=user_name,
             email=user_in.email,
             hashed_password=hashed_password
         )
@@ -43,14 +44,23 @@ class AuthService:
 
     @staticmethod
     async def authenticate_user(user_login: UserLogin) -> User:
-        user = await AuthService.get_user_by_email(user_login.email)
+        login_email = user_login.email or user_login.Email
+        login_password = user_login.password or user_login.Password
+        
+        if not login_email or not login_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email and password are required."
+            )
+            
+        user = await AuthService.get_user_by_email(login_email)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password."
             )
         
-        if not verify_password(user_login.password, user.hashed_password):
+        if not verify_password(login_password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password."

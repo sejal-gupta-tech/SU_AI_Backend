@@ -70,8 +70,10 @@ class ProductUpdate(BaseModel):
     image_url: Optional[str] = None
 
 
+from app.models.base import PyObjectId
+
 class ProductResponse(BaseModel):
-    id: str
+    id: PyObjectId
     business_id: str
 
     name: str

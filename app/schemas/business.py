@@ -13,8 +13,10 @@ class BusinessCreate(BaseModel):
     contact_phone: Optional[str] = None
     description: Optional[str] = None
 
+from app.models.base import PyObjectId
+
 class BusinessResponse(BusinessCreate):
-    id: str
+    id: PyObjectId
     owner_id: str
 
 class BusinessUpdate(BaseModel):

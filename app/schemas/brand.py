@@ -78,8 +78,10 @@ class BrandUpdate(BaseModel):
     social_style: Optional[str] = None
 
 
+from app.models.base import PyObjectId
+
 class BrandResponse(BaseModel):
-    id: str
+    id: PyObjectId
     business_id: str
 
     logo_url: Optional[str] = None

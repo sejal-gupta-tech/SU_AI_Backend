@@ -54,7 +54,7 @@ async def generate_caption(request: CaptionRequest, current_user: User = Depends
         status="processing"
     )
     
-    doc = history_record.model_dump(by_alias=True)
+    doc = history_record.model_dump(by_alias=True, exclude={"id"})
     result = await collection.insert_one(doc)
     history_id = result.inserted_id
 
