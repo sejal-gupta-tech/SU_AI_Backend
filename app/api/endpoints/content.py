@@ -7,6 +7,7 @@ from app.ai.services.post_generation import PostGenerationService
 from app.services.business_service import BusinessService
 from app.services.brand_service import get_brand_kit
 from app.services.product_service import get_products, serialize_product
+from app.services.content_service import ContentService
 from app.core.database import get_database
 
 
@@ -95,14 +96,97 @@ async def generate_post(
     )
 
     # ---------------------------------
-    # 5. Add metadata
+    # 5. Add metadata & Save to DB
     # ---------------------------------
 
     generated["product_id"] = request.product_id
     generated["platform"] = request.platform
     generated["objective"] = request.objective
 
+    # Save to database
+    content_svc = ContentService(db)
+    saved_doc = await content_svc.save_generated_post(
+        user_id=str(current_user.id),
+        business_id=str(business.id),
+        payload=generated
+    )
+
+    generated["_id"] = saved_doc["_id"]
+
     return {
         "success": True,
         "data": generated
     }
+@router.post("/save")
+async def save_content(
+    content: dict,
+    current_user=Depends(get_current_user),
+):
+    db = get_database()
+    business = await BusinessService.get_business_by_owner(str(current_user.id))
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+        
+    # Remove _id if it's a mock string
+    if "_id" in content and len(str(content["_id"])) < 12:
+        del content["_id"]
+        
+    content["business_id"] = str(business.id)
+    content["user_id"] = str(current_user.id)
+    
+    if "_id" in content:
+        # Update existing
+        from bson import ObjectId
+        if ObjectId.is_valid(content["_id"]):
+            content_id = content.pop("_id")
+            await db["contents"].update_one({"_id": ObjectId(content_id)}, {"$set": content})
+            content["_id"] = content_id
+    else:
+        # Insert new
+        result = await db["contents"].insert_one(content)
+        content["_id"] = str(result.inserted_id)
+        
+    return {"success": True, "data": content}
+
+@router.get("")
+async def get_contents(
+    current_user=Depends(get_current_user),
+):
+    db = get_database()
+    business = await BusinessService.get_business_by_owner(str(current_user.id))
+    if not business:
+        return {"success": True, "data": []}
+        
+    cursor = db["contents"].find({"business_id": str(business.id)})
+    
+    contents = []
+    async for item in cursor:
+        if "_id" in item:
+            item["_id"] = str(item["_id"])
+        contents.append(item)
+        
+    return {"success": True, "data": contents}
+
+@router.delete("/{content_id}")
+async def delete_content(
+    content_id: str,
+    current_user=Depends(get_current_user),
+):
+    db = get_database()
+    business = await BusinessService.get_business_by_owner(str(current_user.id))
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+        
+    from bson import ObjectId
+    if not ObjectId.is_valid(content_id):
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+        
+    result = await db["contents"].delete_one({
+        "_id": ObjectId(content_id),
+        "business_id": str(business.id)
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Content not found")
+        
+    return {"success": True, "message": "Content deleted"}

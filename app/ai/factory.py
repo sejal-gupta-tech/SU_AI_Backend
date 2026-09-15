@@ -18,12 +18,9 @@ class AIProviderFactory:
             
         if provider_name == "mock":
             provider = MockAIProvider()
-        # elif provider_name == "local":
-        #     from app.ai.providers.local import LocalAIProvider
-        #     provider = LocalAIProvider()
-        # elif provider_name == "huggingface":
-        #     from app.ai.providers.huggingface import HuggingFaceProvider
-        #     provider = HuggingFaceProvider()
+        elif provider_name == "groq":
+            from app.ai.providers.groq_provider import GroqProvider
+            provider = GroqProvider()
         else:
             # Fallback to mock for development safety if configured incorrectly
             provider = MockAIProvider()

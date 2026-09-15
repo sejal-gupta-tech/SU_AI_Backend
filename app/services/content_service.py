@@ -40,7 +40,7 @@ class ContentService:
             "updated_at": datetime.now(timezone.utc),
         }
 
-        result = await self.db.content.insert_one(document)
+        result = await self.db.contents.insert_one(document)
 
         document["_id"] = str(result.inserted_id)
 
