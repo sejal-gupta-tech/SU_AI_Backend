@@ -16,8 +16,9 @@ class BusinessService:
         business_dict["owner_id"] = owner_id
         business = Business(**business_dict)
         
-        doc = business.model_dump(by_alias=True)
-        await collection.insert_one(doc)
+        doc = business.model_dump(by_alias=True, exclude={"id"})
+        result = await collection.insert_one(doc)
+        business.id = str(result.inserted_id)
         return business
 
     @staticmethod
@@ -25,7 +26,7 @@ class BusinessService:
         collection = await BusinessService.get_collection()
         if not ObjectId.is_valid(business_id):
             return None
-        doc = await collection.find_one({"_id": business_id})
+        doc = await collection.find_one({"_id": ObjectId(business_id)})
         if doc:
             return Business(**doc)
         return None

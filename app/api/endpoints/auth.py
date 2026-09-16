@@ -38,6 +38,18 @@ async def login(user_in: UserLogin):
         )
     )
 
+from fastapi.security import OAuth2PasswordRequestForm
+@router.post("/token")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    # Convert form_data to UserLogin model so we can reuse our logic
+    user_in = UserLogin(email=form_data.username, password=form_data.password)
+    user = await AuthService.authenticate_user(user_in)
+    
+    # Generate JWT
+    access_token = create_access_token(subject=str(user.id))
+    
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return UserResponse(

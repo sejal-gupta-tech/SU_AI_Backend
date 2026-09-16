@@ -28,6 +28,12 @@ def serialize_brand(brand: dict) -> dict:
 
 
 async def create_brand_kit(db, business_id: str, data: BrandCreate):
+    if not business_id or business_id == "None" or not ObjectId.is_valid(business_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must create a business before creating a brand kit"
+        )
+        
     collection = db["brand_kits"]
 
     existing = await collection.find_one({
@@ -42,7 +48,7 @@ async def create_brand_kit(db, business_id: str, data: BrandCreate):
 
     now = datetime.now(timezone.utc)
 
-    brand_data = data.model_dump(exclude_none=True)
+    brand_data = data.model_dump(mode="json", exclude_none=True)
 
     brand_data["business_id"] = ObjectId(business_id)
     brand_data["created_at"] = now
@@ -58,6 +64,9 @@ async def create_brand_kit(db, business_id: str, data: BrandCreate):
 
 
 async def get_brand_kit(db, business_id: str):
+    if not business_id or business_id == "None" or not ObjectId.is_valid(business_id):
+        return None
+
     collection = db["brand_kits"]
 
     brand = await collection.find_one({
@@ -65,10 +74,7 @@ async def get_brand_kit(db, business_id: str):
     })
 
     if not brand:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Brand Kit not found"
-        )
+        return None
 
     return serialize_brand(brand)
 
@@ -78,9 +84,16 @@ async def update_brand_kit(
     business_id: str,
     data: BrandUpdate
 ):
+    if not business_id or business_id == "None" or not ObjectId.is_valid(business_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Brand Kit not found"
+        )
+        
     collection = db["brand_kits"]
 
     update_data = data.model_dump(
+        mode="json",
         exclude_none=True
     )
 
