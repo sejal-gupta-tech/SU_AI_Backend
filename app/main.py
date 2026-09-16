@@ -8,7 +8,7 @@ from app.core.database import connect_to_mongo, close_mongo_connection
 from app.api.api_router import api_router
 from app.api.endpoints.brand import router as brand_router
 from app.api.endpoints.products import router as products_router
-from app.api.endpoints import content
+from app.api.endpoints import content, insights, messages, reviews
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,6 +38,24 @@ app.include_router(api_router, prefix="/api/v1")
 app.include_router(brand_router)
 app.include_router(products_router)
 app.include_router(content.router)
+
+app.include_router(
+    insights.router,
+    prefix="/api/v1/insights",
+    tags=["Insights"]
+)
+
+app.include_router(
+    messages.router,
+    prefix="/api/v1/messages",
+    tags=["Messages"]
+)
+
+app.include_router(
+    reviews.router,
+    prefix="/api/v1/reviews",
+    tags=["Reviews"]
+)
 
 @app.get("/")
 async def root():
