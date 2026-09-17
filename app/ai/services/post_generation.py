@@ -41,12 +41,27 @@ class PostGenerationService:
             raw_text = raw_text.split("```")[1].strip()
 
         try:
-            return json.loads(raw_text)
+            parsed = json.loads(raw_text)
         except json.JSONDecodeError:
-            return {
+            parsed = {
                 "headline": "",
                 "caption": raw_text,
                 "call_to_action": "",
                 "hashtags": [],
                 "creative_direction": "",
             }
+
+        # Generate graphic
+        from app.utils.image_composer import ImageComposer
+        image_url = product.get("image_url", "")
+        if image_url:
+            brand_colors = brand.get("colors", {}) if isinstance(brand, dict) else {}
+            banner_url = await ImageComposer.generate_banner(
+                product_image_url=image_url,
+                headline=parsed.get("headline", "New Product!"),
+                cta=parsed.get("call_to_action", "Shop Now"),
+                brand_colors=brand_colors
+            )
+            parsed["media_url"] = banner_url
+
+        return parsed

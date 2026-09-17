@@ -124,7 +124,7 @@ async def generate_post(
         "success": True,
         "data": generated
     }
-@router.post("/save")
+@router.put("/update")
 async def save_content(
     content: dict,
     current_user=Depends(get_current_user),
@@ -197,3 +197,4 @@ async def delete_content(
         raise HTTPException(status_code=404, detail="Content not found")
         
     return {"success": True, "message": "Content deleted"}
+
