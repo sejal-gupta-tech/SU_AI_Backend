@@ -30,10 +30,17 @@ async def generate_post(
     business = await BusinessService.get_business_by_owner(str(current_user.id))
 
     if not business:
-        raise HTTPException(
-            status_code=404,
-            detail="Business not found"
+        print(f"DEBUG: Business not found for owner {current_user.id}. Creating default.")
+        from app.schemas.business import BusinessCreate
+        default_biz = BusinessCreate(
+            name="My Business",
+            industry="Retail",
+            description="Default business created automatically.",
+            target_audience="General audience",
+            category="General",
+            location="Online"
         )
+        business = await BusinessService.create_business(str(current_user.id), default_biz)
 
     # ---------------------------------
     # 2. Get brand kit

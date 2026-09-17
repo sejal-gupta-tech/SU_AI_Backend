@@ -22,6 +22,29 @@ class AIProvider(ABC):
         """
         pass
     
+    async def generate_json(self, prompt: str, system_prompt: str = None, **kwargs) -> Dict[str, Any]:
+        """
+        Convenience method to generate text and parse it as JSON.
+        """
+        import json
+        import re
+        
+        # Suggest JSON output format
+        kwargs["response_format"] = {"type": "json_object"}
+        
+        result = await self.generate_text(prompt, system_prompt, **kwargs)
+        text = result.get("text", "")
+        
+        # Clean up markdown code blocks if present
+        match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL)
+        if match:
+            text = match.group(1).strip()
+            
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            return {"error": "Failed to parse JSON", "raw_text": text}
+    
     # Future methods to be implemented:
     # @abstractmethod
     # async def generate_image(self, prompt: str, **kwargs) -> Dict[str, Any]: pass

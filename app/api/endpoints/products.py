@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, File, UploadFile
+from fastapi import APIRouter, Depends, status, File, UploadFile, HTTPException
 
 from app.schemas.product import (
     ProductCreate,
@@ -32,9 +32,9 @@ async def create(
     current_user=Depends(get_current_user),
     db=Depends(get_database)
 ):
-    business_id = str(
-        current_user["business_id"]
-    )
+    business_id = current_user.get("business_id")
+    if not business_id or business_id == "None":
+        raise HTTPException(status_code=400, detail="You must create a business profile first")
 
     product = await create_product(
         db,
@@ -54,13 +54,18 @@ async def list_products(
     current_user=Depends(get_current_user),
     db=Depends(get_database)
 ):
-    business_id = str(
-        current_user["business_id"]
-    )
+    business_id = current_user.get("business_id")
+    
+    if not business_id or business_id == "None":
+        return {
+            "success": True,
+            "message": "No business found",
+            "data": []
+        }
 
     products = await get_products(
         db,
-        business_id
+        str(business_id)
     )
 
     return {
@@ -76,9 +81,9 @@ async def get_single_product(
     current_user=Depends(get_current_user),
     db=Depends(get_database)
 ):
-    business_id = str(
-        current_user["business_id"]
-    )
+    business_id = current_user.get("business_id")
+    if not business_id or business_id == "None":
+        raise HTTPException(status_code=400, detail="You must create a business profile first")
 
     product = await get_product(
         db,
@@ -100,9 +105,9 @@ async def update(
     current_user=Depends(get_current_user),
     db=Depends(get_database)
 ):
-    business_id = str(
-        current_user["business_id"]
-    )
+    business_id = current_user.get("business_id")
+    if not business_id or business_id == "None":
+        raise HTTPException(status_code=400, detail="You must create a business profile first")
 
     product = await update_product(
         db,
@@ -124,9 +129,9 @@ async def delete(
     current_user=Depends(get_current_user),
     db=Depends(get_database)
 ):
-    business_id = str(
-        current_user["business_id"]
-    )
+    business_id = current_user.get("business_id")
+    if not business_id or business_id == "None":
+        raise HTTPException(status_code=400, detail="You must create a business profile first")
 
     return await delete_product(
         db,
