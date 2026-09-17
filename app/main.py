@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 # trigger reload
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -12,6 +12,7 @@ from app.api.endpoints import content, insights, messages, reviews
 from app.api.endpoints.photoshoot import router as photoshoot_router
 from app.api.endpoints.ad import router as ad_router
 from app.api.endpoints.reel import router as reel_router
+from app.api.endpoints.calendar import router as calendar_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -63,9 +64,11 @@ app.include_router(
 app.include_router(photoshoot_router)
 app.include_router(ad_router)
 app.include_router(reel_router)
+app.include_router(calendar_router)
 
 @app.get("/")
 async def root():
     return {"message": "Welcome to SevenUnique AI API"}
 # trigger reload
 # trigger reload 2
+
