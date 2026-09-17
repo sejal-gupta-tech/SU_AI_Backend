@@ -21,9 +21,19 @@ async def generate_ad(
     )
 
     # Generate ad copy
-    copy_result = await text_generator.generate_json(
-        prompt=prompt
-    )
+    try:
+        copy_result = await text_generator.generate_json(
+            prompt=prompt
+        )
+    except Exception as e:
+        print(f"Ad copy generation failed: {e}")
+        copy_result = {
+            "headline": f"Discover {product.get('name', 'Our Product')}",
+            "primary_text": "Experience the best quality. Upgrade your lifestyle today with our latest collection.",
+            "description": "Perfect for your needs, designed for excellence.",
+            "cta": request.cta or "Shop Now",
+            "hashtags": ["#quality", "#premium", "#newarrival"]
+        }
 
     # Generate creative
     creative_prompt = f"""

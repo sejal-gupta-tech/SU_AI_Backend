@@ -4,13 +4,7 @@ from typing import Optional, Literal
 class PhotoshootRequest(BaseModel):
     product_id: str
 
-    style: Literal[
-        "studio",
-        "lifestyle",
-        "model",
-        "festival",
-        "marketplace"
-    ] = "studio"
+    style: str = "studio"
 
     background: Optional[str] = "clean"
 

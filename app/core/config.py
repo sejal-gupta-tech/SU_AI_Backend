@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # AI Configuration
     AI_PROVIDER: str = "mock"
     GROQ_API_KEY: str | None = None
-    GROQ_MODEL: str = "llama3-8b-8192"
+    GROQ_MODEL: str = "openai/gpt-oss-20b"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
