@@ -16,6 +16,10 @@ class BusinessCreate(BaseModel):
     whatsapp_token: Optional[str] = None
     ig_access_token: Optional[str] = None
     ig_account_id: Optional[str] = None
+    fb_access_token: Optional[str] = None
+    fb_page_id: Optional[str] = None
+    linkedin_author_id: Optional[str] = None
+    linkedin_access_token: Optional[str] = None
 
 from app.models.base import PyObjectId
 
@@ -38,3 +42,7 @@ class BusinessUpdate(BaseModel):
     whatsapp_token: Optional[str] = None
     ig_access_token: Optional[str] = None
     ig_account_id: Optional[str] = None
+    fb_access_token: Optional[str] = None
+    fb_page_id: Optional[str] = None
+    linkedin_author_id: Optional[str] = None
+    linkedin_access_token: Optional[str] = None
