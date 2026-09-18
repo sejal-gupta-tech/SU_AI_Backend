@@ -60,3 +60,14 @@ async def delete(
 ):
     business_id = str(current_user["business_id"])
     return await delete_review(db, business_id, review_id)
+
+@router.post("/{review_id}/generate-reply")
+async def generate_reply(
+    review_id: str,
+    current_user=Depends(get_current_user),
+    db=Depends(get_database)
+):
+    from app.services.review_service import generate_ai_reply
+    business_id = str(current_user["business_id"])
+    reply = await generate_ai_reply(db, business_id, review_id)
+    return {"success": True, "data": reply}
