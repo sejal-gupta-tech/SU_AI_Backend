@@ -18,7 +18,8 @@ async def signup(user_in: UserCreate):
         user=UserResponse(
             id=str(user.id),
             name=user.name,
-            email=user.email
+            email=user.email,
+            role=getattr(user, "role", "user")
         )
     )
 
@@ -34,7 +35,8 @@ async def login(user_in: UserLogin):
         user=UserResponse(
             id=str(user.id),
             name=user.name,
-            email=user.email
+            email=user.email,
+            role=getattr(user, "role", "user")
         )
     )
 
@@ -55,5 +57,6 @@ async def get_me(current_user: User = Depends(get_current_user)):
     return UserResponse(
         id=str(current_user.id),
         name=current_user.name,
-        email=current_user.email
+        email=current_user.email,
+        role=getattr(current_user, "role", "user")
     )

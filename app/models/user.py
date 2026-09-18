@@ -6,3 +6,4 @@ class User(MongoBaseModel):
     name: str
     email: EmailStr
     hashed_password: str
+    role: str = "user"
