@@ -1,5 +1,4 @@
-﻿from fastapi import FastAPI
-# trigger reload
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -8,7 +7,7 @@ from app.core.database import connect_to_mongo, close_mongo_connection
 from app.api.api_router import api_router
 from app.api.endpoints.brand import router as brand_router
 from app.api.endpoints.products import router as products_router
-from app.api.endpoints import content, insights, messages, reviews
+from app.api.endpoints import content, insights, messages, reviews, social
 from app.api.endpoints.photoshoot import router as photoshoot_router
 from app.api.endpoints.ad import router as ad_router
 from app.api.endpoints.reel import router as reel_router
@@ -42,6 +41,7 @@ app.include_router(api_router, prefix="/api/v1")
 app.include_router(brand_router)
 app.include_router(products_router)
 app.include_router(content.router)
+app.include_router(social.router)
 
 app.include_router(
     insights.router,
@@ -69,6 +69,3 @@ app.include_router(calendar_router)
 @app.get("/")
 async def root():
     return {"message": "Welcome to SevenUnique AI API"}
-# trigger reload
-# trigger reload 2
-
