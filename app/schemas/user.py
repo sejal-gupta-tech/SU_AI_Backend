@@ -19,6 +19,7 @@ class UserResponse(BaseModel):
     id: str
     name: str
     email: EmailStr
+    role: str = "user"
 
 class TokenResponse(BaseModel):
     access_token: str

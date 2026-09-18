@@ -17,7 +17,6 @@ from app.utils.upload import save_image
 
 
 router = APIRouter(
-    prefix="/api/brand",
     tags=["Brand Kit"]
 )
 

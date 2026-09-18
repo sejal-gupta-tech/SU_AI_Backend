@@ -61,6 +61,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
                 "id": str(user_doc["_id"]),
                 "name": user_doc.get("name", "Test User"),
                 "email": user_doc.get("email", "test@example.com"),
+                "role": user_doc.get("role", "user"),
                 "business_id": str(business["_id"]) if business else None
             })
         # Fallback if DB is completely empty
@@ -68,6 +69,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
             "id": "mock_id_123",
             "name": "Test User",
             "email": "test@example.com",
+            "role": "user",
             "business_id": "mock_business_123"
         })
     # -----------------------------------------------------
@@ -99,5 +101,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         "id": str(user_doc["_id"]),
         "name": user_doc.get("name", "Unknown"),
         "email": user_doc.get("email", ""),
+        "role": user_doc.get("role", "user"),
         "business_id": str(business["_id"]) if business else None
     })
+
+async def require_admin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+    return current_user
