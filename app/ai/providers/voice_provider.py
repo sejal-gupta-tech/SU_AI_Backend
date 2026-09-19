@@ -77,10 +77,41 @@ class PiperVoiceProvider(VoiceProvider):
             raise e
 
 
+class GTTSVoiceProvider(VoiceProvider):
+    """
+    gTTS (Google Text-to-Speech) provider for MVP.
+    Generates a real mp3 file locally.
+    """
+    def __init__(self):
+        self.output_dir = "uploads/audio"
+        os.makedirs(self.output_dir, exist_ok=True)
+        
+    async def generate_audio(self, text: str, language: str, voice: str, speed: float = 1.0) -> str:
+        logger.info(f"GTTSVoiceProvider: Generating audio for language={language}")
+        
+        # map 'Hinglish' or 'Hindi' to 'hi', others to 'en'
+        lang_code = "en"
+        if language and language.lower() in ["hindi", "hinglish"]:
+            lang_code = "hi"
+            
+        filename = f"{uuid.uuid4()}.mp3"
+        output_path = os.path.join(self.output_dir, filename)
+        
+        # gTTS is synchronous, run in executor
+        def _generate():
+            from gtts import gTTS
+            tts = gTTS(text=text, lang=lang_code, slow=(speed < 1.0))
+            tts.save(output_path)
+            
+        await asyncio.to_thread(_generate)
+        
+        return f"/uploads/audio/{filename}"
+
 def get_voice_provider() -> VoiceProvider:
-    provider_name = getattr(settings, "VOICE_PROVIDER", "mock").lower()
+    provider_name = getattr(settings, "VOICE_PROVIDER", "gtts").lower()
     if provider_name == "piper":
         return PiperVoiceProvider()
-    else:
-        # Default to mock for easy development/testing
+    elif provider_name == "mock":
         return MockVoiceProvider()
+    else:
+        return GTTSVoiceProvider()

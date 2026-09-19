@@ -26,6 +26,9 @@ async def create_photoshoot(
     current_user=Depends(get_current_user),
     db=Depends(get_database)
 ):
+    from app.services.credit_service import CreditService
+    await CreditService.check_credits(db, current_user.id, "photoshoot")
+
     product_id = ObjectId(request.product_id) if ObjectId.is_valid(request.product_id) else request.product_id
     
     product = await db.products.find_one({
@@ -50,6 +53,8 @@ async def create_photoshoot(
             text_generator=text_generator,
             image_provider=image_generator,
         )
+
+        await CreditService.deduct_credits(db, current_user.id, "photoshoot")
 
         return {
             "success": True,

@@ -20,6 +20,10 @@ async def generate_reel(
     current_user = Depends(get_current_user)
 ):
     db = get_database()
+    
+    from app.services.credit_service import CreditService
+    await CreditService.check_credits(db, current_user.id, "reel_generation")
+    
     business = await BusinessService.get_business_by_owner(str(current_user.id))
     if not business:
         raise HTTPException(status_code=404, detail="Business not found")
@@ -61,21 +65,29 @@ async def generate_reel(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
         
-    reel_service = ReelService(db)
-    job_id = await reel_service.create_reel_job(
-        user_id=str(current_user.id),
-        business_id=str(business.id),
-        request=request,
-        product=product,
-        brand=brand
-    )
+    # Deduct credits atomically before pushing to background
+    await CreditService.deduct_credits(db, current_user.id, "reel_generation")
     
-    return ReelGenerationResponse(
-        success=True,
-        job_id=job_id,
-        status="queued",
-        message="Reel generation started in background."
-    )
+    try:
+        reel_service = ReelService(db)
+        job_id = await reel_service.create_reel_job(
+            user_id=str(current_user.id),
+            business_id=str(business.id),
+            request=request,
+            product=product,
+            brand=brand
+        )
+        
+        return ReelGenerationResponse(
+            success=True,
+            job_id=job_id,
+            status="queued",
+            message="Reel generation started in background."
+        )
+    except Exception as exc:
+        # Refund if queueing failed
+        await CreditService.refund_credits(db, current_user.id, "reel_generation")
+        raise HTTPException(status_code=500, detail=f"Failed to start reel generation: {exc}")
 
 @router.get("/reel/{job_id}/status", response_model=ReelJobStatus)
 async def get_reel_status(

@@ -40,6 +40,11 @@ class AuthService:
         doc = user.model_dump(by_alias=True, exclude={"id"})
         result = await collection.insert_one(doc)
         user.id = str(result.inserted_id)
+        
+        # Provision default Free plan immediately
+        from app.services.credit_service import CreditService
+        await CreditService.get_or_create_subscription(get_database(), user.id)
+        
         return user
 
     @staticmethod
