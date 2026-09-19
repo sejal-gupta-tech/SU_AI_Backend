@@ -52,33 +52,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     from app.core.database import get_database
     db = get_database()
     
-    # --- MOCK AUTH FOR DEVELOPMENT (Bypass 401 errors) ---
-    if not token:
-        user_doc = await db["users"].find_one({})
-        if user_doc:
-            business = await db["businesses"].find_one({"owner_id": str(user_doc["_id"])})
-            return CurrentUser({
-                "id": str(user_doc["_id"]),
-                "name": user_doc.get("name", "Test User"),
-                "email": user_doc.get("email", "test@example.com"),
-                "role": user_doc.get("role", "user"),
-                "business_id": str(business["_id"]) if business else None
-            })
-        # Fallback if DB is completely empty
-        return CurrentUser({
-            "id": "mock_id_123",
-            "name": "Test User",
-            "email": "test@example.com",
-            "role": "user",
-            "business_id": "mock_business_123"
-        })
-    # -----------------------------------------------------
-
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    if not token:
+        raise credentials_exception
     
     payload = decode_access_token(token)
     if payload is None:
