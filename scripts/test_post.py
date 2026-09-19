@@ -1,3 +1,5 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import asyncio, traceback
 from app.core.database import connect_to_mongo
 from app.services.business_service import BusinessService
