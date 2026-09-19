@@ -94,3 +94,44 @@ async def delete_review(db, business_id: str, review_id: str):
         raise HTTPException(status_code=404, detail="Review not found")
         
     return {"success": True, "message": "Review deleted successfully"}
+
+async def generate_ai_reply(db, business_id: str, review_id: str):
+    from app.ai.factory import AIProviderFactory
+    
+    # 1. Fetch the review
+    rev = await get_review(db, business_id, review_id)
+    rating = rev.get("rating", 5)
+    review_text = rev.get("review_text", "")
+    customer_name = rev.get("customer_name", "Customer")
+    
+    # 2. Setup Prompt
+    system_prompt = "You are a customer support AI for a business. Respond directly to the customer's review."
+    prompt = f"""
+Customer Name: {customer_name}
+Rating: {rating}/5 Stars
+Review: {review_text}
+
+IMPORTANT RULES FOR REPLY:
+- If Rating is 4 or 5 stars, reply ONLY with something similar to: "Thank you so much for your valuable feedback! ❤ We look forward to serving you again."
+- If Rating is 1, 2, or 3 stars, reply ONLY with something similar to: "We're sorry you had this experience. Please DM us your order details so our team can resolve this."
+Keep the tone polite. Do not include quotes around your reply.
+"""
+    
+    # 3. Generate Reply
+    try:
+        text_generator = AIProviderFactory.get_provider()
+        response = await text_generator.generate_text(prompt=prompt, system_prompt=system_prompt)
+        reply = response.get("text", "").strip()
+        
+        # Clean up quotes if AI adds them
+        if reply.startswith('"') and reply.endswith('"'):
+            reply = reply[1:-1]
+            
+        return reply
+    except Exception as e:
+        print(f"Failed to generate review reply: {e}")
+        # Fallback if AI fails
+        if rating >= 4:
+            return "Thank you so much for your valuable feedback! ❤ We look forward to serving you again."
+        else:
+            return "We're sorry you had this experience. Please DM us your order details so our team can resolve this."

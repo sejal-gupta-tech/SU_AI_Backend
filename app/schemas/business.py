@@ -12,6 +12,14 @@ class BusinessCreate(BaseModel):
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
     description: Optional[str] = None
+    whatsapp_phone_id: Optional[str] = None
+    whatsapp_token: Optional[str] = None
+    ig_access_token: Optional[str] = None
+    ig_account_id: Optional[str] = None
+    fb_access_token: Optional[str] = None
+    fb_page_id: Optional[str] = None
+    linkedin_author_id: Optional[str] = None
+    linkedin_access_token: Optional[str] = None
 
 from app.models.base import PyObjectId
 
@@ -30,3 +38,11 @@ class BusinessUpdate(BaseModel):
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
     description: Optional[str] = None
+    whatsapp_phone_id: Optional[str] = None
+    whatsapp_token: Optional[str] = None
+    ig_access_token: Optional[str] = None
+    ig_account_id: Optional[str] = None
+    fb_access_token: Optional[str] = None
+    fb_page_id: Optional[str] = None
+    linkedin_author_id: Optional[str] = None
+    linkedin_access_token: Optional[str] = None

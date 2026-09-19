@@ -59,6 +59,9 @@ class ReelJobStatus(BaseModel):
     stage: str
     video_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
+    audio_url: Optional[str] = None
     script: Optional[dict] = None
     caption: Optional[str] = None
     hashtags: Optional[List[str]] = None
+    product_name: Optional[str] = None
+    product_description: Optional[str] = None

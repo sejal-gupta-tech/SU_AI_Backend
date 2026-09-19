@@ -61,9 +61,12 @@ class ReelService:
             stage=job.get("stage", ""),
             video_url=job.get("video_url"),
             thumbnail_url=job.get("thumbnail_url"),
+            audio_url=job.get("audio_url"),
             script=job.get("script"),
             caption=job.get("caption"),
-            hashtags=job.get("hashtags")
+            hashtags=job.get("hashtags"),
+            product_name=job.get("product_name"),
+            product_description=job.get("product_description"),
         )
 
     async def _update_job(self, job_id: str, updates: dict):
@@ -101,40 +104,52 @@ class ReelService:
                 voice="en_US-lessac-medium" # Should be mapped properly
             )
             
-            # 3. Generate Video
+            # 3. Generate Video Scenes
             await self._update_job(job_id, {"progress": 50, "stage": "Generating video scenes"})
             
-            image_url = product.get("image_url") or (product.get("images")[0] if product.get("images") else None)
-            if not image_url:
-                # We need a fallback or to use a static image if possible
-                pass
-            
+            # Resolve product image — use stored image_url if available
+            image_url = product.get("image_url") or (
+                product.get("images")[0] if product.get("images") else None
+            )
+
             video_job_id = await self.video_provider.generate_video(
                 image_url=image_url,
                 prompt=script.scenes[0].visual if script.scenes else "Product showcase",
                 duration=script.duration_seconds
             )
-            
-            # Wait for video (mocked)
+
+            # Wait for video result from provider
             await asyncio.sleep(2)
-            video_url = await self.video_provider.get_result(video_job_id)
-            
+            raw_video_url = await self.video_provider.get_result(video_job_id)
+
             # 4. Compose Final Video
             await self._update_job(job_id, {"progress": 80, "stage": "Composing final reel"})
             final_video_url = await self.composer.compose_reel(
-                video_segments=[video_url] if image_url else [], # Typically we'd use the generated video
+                video_segments=[raw_video_url] if raw_video_url else [],
                 audio_url=audio_url,
                 brand_colors={"primary": brand.get("primary_color", "#000000")}
             )
-            
+
+            # If final_video_url is still the generic sample URL, set to None
+            # so the frontend shows the product image preview card instead.
+            GENERIC_FALLBACK_URLS = {
+                "https://www.w3schools.com/html/mov_bbb.mp4",
+            }
+            if final_video_url in GENERIC_FALLBACK_URLS:
+                final_video_url = None
+
             # 5. Completed
             await self._update_job(job_id, {
                 "status": "completed",
                 "progress": 100,
                 "stage": "Completed",
-                "video_url": final_video_url,
-                "thumbnail_url": image_url
+                "video_url": final_video_url,   # None when no real video was composed
+                "thumbnail_url": image_url,      # Product image or placeholder
+                "audio_url": audio_url,          # Save the generated audio
+                "product_name": product.get("name", ""),
+                "product_description": product.get("description", ""),
             })
+
             
             # Optionally copy to 'contents' collection
             
