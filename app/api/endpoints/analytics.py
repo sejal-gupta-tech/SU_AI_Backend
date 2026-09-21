@@ -54,9 +54,12 @@ async def get_analytics_overview(
     try:
         db = get_database()
         service = AnalyticsService(db)
+        # CurrentUser is a dict subclass — both .get() and attribute access are safe
+        user_id = str(current_user.get("id") or current_user.id)
+        business_id = current_user.get("business_id")
         result = await service.get_overview(
-            user_id=current_user.id,
-            business_id=current_user.get("business_id"),
+            user_id=user_id,
+            business_id=business_id,
             range_param=date_range,
         )
         return {"success": True, "data": result}
