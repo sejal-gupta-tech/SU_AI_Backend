@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from bson import ObjectId
 from app.schemas.calendar import CalendarRequest, CalendarResponse
 from app.services.calendar_service import generate_calendar_plan
@@ -11,18 +11,36 @@ router = APIRouter(
     tags=["AI Calendar"],
 )
 
-@router.post("/", response_model=CalendarResponse)
+@router.post("", response_model=CalendarResponse)
 async def create_calendar(
     request: CalendarRequest,
     current_user=Depends(get_current_user),
     db=Depends(get_database)
 ):
-    product_id = ObjectId(request.product_id) if ObjectId.is_valid(request.product_id) else request.product_id
-    
-    product = await db.products.find_one({
-        "_id": product_id,
-        "business_id": ObjectId(current_user.business_id) if current_user.business_id else None,
-    })
+    product_id = request.product_id
+    product = None
+    business_oid = ObjectId(current_user.business_id) if current_user.business_id else None
+
+    # Try MongoDB ObjectId lookup first
+    if ObjectId.is_valid(product_id):
+        product = await db.products.find_one({
+            "_id": ObjectId(product_id),
+            "business_id": business_oid
+        })
+
+    # If not found by ObjectId, try matching by custom product_id field or name
+    if not product:
+        product = await db.products.find_one({
+            "business_id": business_oid,
+            "$or": [
+                {"product_id": product_id},
+                {"name": product_id}
+            ]
+        })
+
+    # If still not found, use first product of the business as fallback
+    if not product and business_oid:
+        product = await db.products.find_one({"business_id": business_oid})
 
     if not product:
         raise HTTPException(

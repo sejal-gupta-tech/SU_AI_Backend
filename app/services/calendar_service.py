@@ -46,7 +46,7 @@ Example format:
 ]
 """
     try:
-        response = await text_generator.generate_text(prompt=system_prompt)
+        response = await text_generator.generate_text(prompt=system_prompt, max_tokens=4000)
         text_content = response.get("text", "")
         
         # Clean the response to ensure it's valid JSON
