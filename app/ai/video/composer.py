@@ -11,6 +11,7 @@ try:
 except ImportError:
     HAS_FFMPEG = False
 
+# Reload trigger
 logger = logging.getLogger(__name__)
 
 class VideoComposer:
@@ -122,7 +123,8 @@ class VideoComposer:
             cmd.extend(["-f", "lavfi", "-t", str(total_duration), "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"])
             
         # 3. Background music
-        has_bgm = os.path.exists(self.bgm_path)
+        # Validate that the bgm is actually an audio file and not a text placeholder
+        has_bgm = os.path.exists(self.bgm_path) and os.path.getsize(self.bgm_path) > 1024
         if has_bgm:
             cmd.extend(["-stream_loop", "-1", "-i", self.bgm_path])
             
@@ -151,17 +153,18 @@ class VideoComposer:
             output_path
         ])
         
-        logger.info(f"Running FFmpeg: {' '.join(cmd)}")
-        
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await process.communicate()
-        
-        if process.returncode != 0:
-            logger.error(f"FFmpeg error: {stderr.decode()}")
+        def run_ffmpeg():
+            import subprocess
+            logger.info(f"Running FFmpeg: {' '.join(cmd)}")
+            return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+        try:
+            process = await asyncio.to_thread(run_ffmpeg)
+            if process.returncode != 0:
+                logger.error(f"FFmpeg error: {process.stderr.decode('utf-8', errors='ignore')}")
+                raise Exception("FFmpeg video composition failed")
+        except Exception as e:
+            logger.error(f"Failed to execute FFmpeg: {e}")
             raise Exception("FFmpeg video composition failed")
             
         return f"/{self.output_dir}/{out_filename}"

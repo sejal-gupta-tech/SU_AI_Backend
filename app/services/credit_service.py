@@ -63,6 +63,10 @@ class CreditService:
     @staticmethod
     async def check_credits(db, user_id: str, action: str):
         """Check if user has enough credits without deducting. Raises 402 if not."""
+        from app.core.config import settings
+        if settings.ENVIRONMENT == "development":
+            return True
+            
         # Ensure they have a subscription
         sub = await CreditService.get_or_create_subscription(db, user_id)
         
@@ -82,6 +86,10 @@ class CreditService:
         
         if cost == 0:
             return {"success": True}
+            
+        from app.core.config import settings
+        if settings.ENVIRONMENT == "development":
+            return {"success": True, "credits_remaining": "Unlimited (Dev Mode)"}
             
         # Ensure subscription exists
         await CreditService.get_or_create_subscription(db, user_id)

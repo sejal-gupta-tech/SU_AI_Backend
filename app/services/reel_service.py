@@ -112,6 +112,23 @@ class ReelService:
                 product.get("images")[0] if product.get("images") else None
             )
 
+            # If no product image, generate a realistic one dynamically
+            if not image_url:
+                await self._update_job(job_id, {"progress": 40, "stage": "Generating product image"})
+                from app.ai.image.generator import ImageGenerator
+                from app.core.config import settings
+                image_gen = ImageGenerator(
+                    api_url=getattr(settings, "IMAGE_API_URL", "https://api.openai.com/v1/images/generations"),
+                    api_key=getattr(settings, "IMAGE_API_KEY", "your_api_key_here")
+                )
+                product_name = product.get("name", "product")
+                img_prompt = f"Professional product photography of a {product_name}, highly detailed, photorealistic, 8k resolution, commercial studio lighting"
+                img_res = await image_gen.generate(prompt=img_prompt)
+                image_url = img_res.get("image_url")
+
+            if not image_url:
+                raise Exception("Failed to acquire or generate visual assets for composition")
+
             # We will use imageio_ffmpeg and the product image directly in VideoComposer.
             # Passing the static image for all scenes.
             video_segments = [image_url] * len(script.scenes)

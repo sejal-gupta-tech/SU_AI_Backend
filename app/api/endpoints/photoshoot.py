@@ -20,7 +20,7 @@ image_generator = ImageGenerator(
 )
 
 
-@router.post("/")
+@router.post("")
 async def create_photoshoot(
     request: PhotoshootRequest,
     current_user=Depends(get_current_user),
@@ -29,12 +29,25 @@ async def create_photoshoot(
     from app.services.credit_service import CreditService
     await CreditService.check_credits(db, current_user.id, "photoshoot")
 
-    product_id = ObjectId(request.product_id) if ObjectId.is_valid(request.product_id) else request.product_id
-    
-    product = await db.products.find_one({
-        "_id": product_id,
-        "business_id": ObjectId(current_user.business_id) if current_user.business_id else None,
-    })
+    # Flexible product lookup logic
+    product = None
+    product_id = request.product_id
+    business_id = ObjectId(current_user.business_id) if current_user.business_id else None
+
+    # Try ObjectId lookup
+    if ObjectId.is_valid(product_id):
+        product = await db["products"].find_one({"_id": ObjectId(product_id), "business_id": business_id})
+
+    # Try name or custom product_id lookup
+    if not product:
+        product = await db["products"].find_one({
+            "business_id": business_id,
+            "$or": [{"product_id": product_id}, {"name": product_id}]
+        })
+
+    # Fallback to first product
+    if not product and business_id:
+        product = await db["products"].find_one({"business_id": business_id})
 
     if not product:
         raise HTTPException(

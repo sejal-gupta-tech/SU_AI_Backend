@@ -30,10 +30,10 @@ Tone: {tone}
 
     prompt += """
 # INSTRUCTIONS
-1. Create a dynamic and engaging script for a short-form vertical video (Reel).
+1. Create a dynamic, highly realistic, and engaging script for a short-form vertical video (Reel).
 2. The output MUST be valid JSON matching the exact schema below.
 3. The total duration of all scenes must closely match the requested duration.
-4. Voiceover text should sound natural in the specified language and tone.
+4. Voiceover text should sound natural, authentic, and realistic in the specified language and tone.
 5. Provide compelling on_screen_text that highlights key value props.
 6. The final CTA should encourage action related to the objective.
 
