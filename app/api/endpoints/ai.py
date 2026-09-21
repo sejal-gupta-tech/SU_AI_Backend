@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 import time
 from typing import List
 
-from app.schemas.ai import CaptionRequest, CaptionResponse, AIGenerationHistoryResponse
+from app.schemas.ai import CaptionRequest, CaptionResponse, AIGenerationHistoryResponse, ImageGenerationRequest
 from app.models.ai import AIGenerationHistory
 from app.ai.services.business_context import BusinessContextService
 from app.ai.services.text_generation import TextGenerationService
@@ -150,3 +150,96 @@ async def get_generation_by_id(generation_id: str, current_user: User = Depends(
         doc["updated_at"] = doc["updated_at"].isoformat()
         
     return doc
+
+
+@router.post("/image", response_model=dict)
+async def generate_image(request: ImageGenerationRequest, current_user: User = Depends(get_current_user)):
+    db = get_database()
+    from app.services.credit_service import CreditService
+    await CreditService.check_credits(db, current_user.id, "image_generation")
+    
+    start_time = time.time()
+    
+    business = await BusinessService.get_business_by_owner(str(current_user.id))
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    collection = await get_history_collection()
+    
+    history_record = AIGenerationHistory(
+        user_id=str(current_user.id),
+        business_id=str(business.id),
+        generation_type="image",
+        provider="pollinations", 
+        model_name="stable-diffusion",
+        input_params=request.model_dump(),
+        status="processing"
+    )
+    
+    doc = history_record.model_dump(by_alias=True, exclude={"id"})
+    result = await collection.insert_one(doc)
+    history_id = result.inserted_id
+
+    try:
+        from app.ai.image.generator import ImageGenerator
+        from app.core.config import settings
+        
+        image_generator = ImageGenerator(
+            api_url=getattr(settings, "IMAGE_API_URL", "https://api.openai.com/v1/images/generations"),
+            api_key=getattr(settings, "IMAGE_API_KEY", "your_api_key_here")
+        )
+
+        prompt = request.prompt
+        if request.additional_instruction:
+            prompt += f" {request.additional_instruction}"
+
+        product_image_url = None
+        if request.product_id:
+            from bson import ObjectId
+            if ObjectId.is_valid(request.product_id):
+                prod = await db["products"].find_one({"_id": ObjectId(request.product_id), "business_id": ObjectId(str(business.id))})
+                if prod and prod.get("image_url"):
+                    product_image_url = prod["image_url"]
+
+        response = await image_generator.generate(
+            prompt=prompt,
+            product_image=product_image_url
+        )
+        
+        execution_time = int((time.time() - start_time) * 1000)
+        await collection.update_one(
+            {"_id": history_id},
+            {"$set": {
+                "status": "success",
+                "output_data": response,
+                "execution_time_ms": execution_time,
+                "provider": "pollinations",
+                "model_name": "stable-diffusion"
+            }}
+        )
+        
+        await CreditService.deduct_credits(db, current_user.id, "image_generation")
+
+        return {
+            "success": True,
+            "message": "Image generated successfully",
+            "data": response
+        }
+
+    except Exception as e:
+        execution_time = int((time.time() - start_time) * 1000)
+        await collection.update_one(
+            {"_id": history_id},
+            {"$set": {
+                "status": "failed",
+                "error_message": str(e),
+                "execution_time_ms": execution_time
+            }}
+        )
+        return {
+            "success": False,
+            "message": "AI generation failed. Please try again.",
+            "error": {
+                "code": "AI_GENERATION_FAILED"
+            }
+        }

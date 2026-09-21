@@ -12,6 +12,8 @@ from app.api.endpoints.photoshoot import router as photoshoot_router
 from app.api.endpoints.ad import router as ad_router
 from app.api.endpoints.reel import router as reel_router
 from app.api.endpoints.calendar import router as calendar_router
+from app.api.endpoints.credits import router as credits_router
+from app.api.endpoints.subscription import router as subscription_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,6 +23,8 @@ async def lifespan(app: FastAPI):
     # Shutdown
     close_mongo_connection()
 
+from fastapi.staticfiles import StaticFiles
+
 app = FastAPI(
     title="SevenUnique AI API",
     description="Backend API for SevenUnique AI Marketing Platform",
@@ -28,10 +32,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+import os
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # Set up CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=".*",
+    allow_origins=settings.CORS_ORIGINS_LIST,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,6 +71,8 @@ app.include_router(photoshoot_router)
 app.include_router(ad_router)
 app.include_router(reel_router)
 app.include_router(calendar_router)
+app.include_router(credits_router)
+app.include_router(subscription_router)
 
 @app.get("/")
 async def root():

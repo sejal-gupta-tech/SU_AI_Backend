@@ -58,4 +58,4 @@ class GroqProvider(AIProvider):
             }
         except Exception as e:
             logger.error(f"Groq API Error: {str(e)}")
-            raise RuntimeError(f"AI generation failed. Please try again.")
+            raise RuntimeError(f"AI generation failed: {str(e)}")

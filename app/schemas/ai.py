@@ -26,3 +26,8 @@ class AIGenerationHistoryResponse(BaseModel):
     status: str
     execution_time_ms: int
     created_at: str
+
+class ImageGenerationRequest(BaseModel):
+    prompt: str
+    product_id: Optional[str] = None
+    additional_instruction: Optional[str] = None

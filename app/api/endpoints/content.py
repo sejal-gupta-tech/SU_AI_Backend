@@ -23,6 +23,12 @@ async def generate_post(
     current_user=Depends(get_current_user),
 ):
 
+    db = get_database()
+    from app.services.credit_service import CreditService
+    
+    # Check credits before generating
+    await CreditService.check_credits(db, current_user.id, "post_generation")
+
     # ---------------------------------
     # 1. Get user's business
     # ---------------------------------
@@ -46,7 +52,6 @@ async def generate_post(
     # 2. Get brand kit
     # ---------------------------------
 
-    db = get_database()
     brand = await get_brand_kit(
         db,
         str(business.id)
@@ -119,6 +124,9 @@ async def generate_post(
     )
 
     generated["_id"] = saved_doc["_id"]
+
+    # Deduct credits after successful generation
+    await CreditService.deduct_credits(db, current_user.id, "post_generation")
 
     return {
         "success": True,

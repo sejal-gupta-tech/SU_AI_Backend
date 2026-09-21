@@ -42,7 +42,7 @@ class ReelService:
         
         # In a production environment, this should be sent to a Celery/Redis queue.
         # Here we use asyncio.create_task for the background job.
-        asyncio.create_task(self._process_reel_generation(job_id, product, brand, request))
+        asyncio.create_task(self._process_reel_generation(job_id, str(user_id), product, brand, request))
         
         return job_id
 
@@ -76,7 +76,7 @@ class ReelService:
             {"$set": updates}
         )
 
-    async def _process_reel_generation(self, job_id: str, product: dict, brand: dict, request: GenerateReelRequest):
+    async def _process_reel_generation(self, job_id: str, user_id: str, product: dict, brand: dict, request: GenerateReelRequest):
         try:
             # 1. Generate Script
             await self._update_job(job_id, {"status": "processing", "progress": 10, "stage": "Generating script"})
@@ -112,52 +112,38 @@ class ReelService:
                 product.get("images")[0] if product.get("images") else None
             )
 
-            video_job_id = await self.video_provider.generate_video(
-                image_url=image_url,
-                prompt=script.scenes[0].visual if script.scenes else "Product showcase",
-                duration=script.duration_seconds
-            )
-
-            # Wait for video result from provider
-            await asyncio.sleep(2)
-            raw_video_url = await self.video_provider.get_result(video_job_id)
-
+            # We will use imageio_ffmpeg and the product image directly in VideoComposer.
+            # Passing the static image for all scenes.
+            video_segments = [image_url] * len(script.scenes)
+            
             # 4. Compose Final Video
             await self._update_job(job_id, {"progress": 80, "stage": "Composing final reel"})
             final_video_url = await self.composer.compose_reel(
-                video_segments=[raw_video_url] if raw_video_url else [],
+                video_segments=video_segments,
                 audio_url=audio_url,
-                brand_colors={"primary": brand.get("primary_color", "#000000")}
+                brand_colors={"primary": brand.get("primary_color", "#000000")},
+                script=script
             )
 
-            # If final_video_url is still the generic sample URL, set to None
-            # so the frontend shows the product image preview card instead.
-            GENERIC_FALLBACK_URLS = {
-                "https://www.w3schools.com/html/mov_bbb.mp4",
-            }
-            if final_video_url in GENERIC_FALLBACK_URLS:
-                final_video_url = None
+            if not final_video_url:
+                raise Exception("Failed to compose final video")
 
             # 5. Completed
             await self._update_job(job_id, {
                 "status": "completed",
                 "progress": 100,
                 "stage": "Completed",
-                "video_url": final_video_url,   # None when no real video was composed
-                "thumbnail_url": image_url,      # Product image or placeholder
-                "audio_url": audio_url,          # Save the generated audio
+                "video_url": final_video_url,   
+                "thumbnail_url": image_url,      
+                "audio_url": audio_url,          
                 "product_name": product.get("name", ""),
                 "product_description": product.get("description", ""),
             })
-
-            
-            # Optionally copy to 'contents' collection
             
         except Exception as e:
             err_msg = str(e).strip()
             if not err_msg:
                 err_msg = repr(e)
-            # Truncate extremely long error messages (like Pydantic Validation errors)
             if len(err_msg) > 200:
                 err_msg = err_msg[:200] + "..."
                 
@@ -167,3 +153,10 @@ class ReelService:
                 "progress": 0,
                 "stage": f"Failed: {err_msg}"
             })
+            
+            # Refund credits safely on failure exactly once
+            try:
+                from app.services.credit_service import CreditService
+                await CreditService.refund_credits(self.db, user_id=user_id, action="reel_generation", job_id=job_id)
+            except Exception as refund_err:
+                logger.error(f"Failed to refund credits for job {job_id}: {refund_err}")
