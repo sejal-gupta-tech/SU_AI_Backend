@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime, timezone
 from app.ai.factory import AIProviderFactory
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ Example format:
             "prompt": prompt,
             "days": plan_data,
             "status": "generated",
+            "created_at": datetime.now(timezone.utc),
         }
         await db.calendars.insert_one(document)
         
