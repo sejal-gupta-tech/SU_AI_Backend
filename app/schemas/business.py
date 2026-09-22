@@ -20,6 +20,8 @@ class BusinessCreate(BaseModel):
     fb_page_id: Optional[str] = None
     linkedin_author_id: Optional[str] = None
     linkedin_access_token: Optional[str] = None
+    auto_publish_enabled: bool = False
+    autopilot_schedule: Optional[dict] = None
 
 from app.models.base import PyObjectId
 
@@ -46,3 +48,5 @@ class BusinessUpdate(BaseModel):
     fb_page_id: Optional[str] = None
     linkedin_author_id: Optional[str] = None
     linkedin_access_token: Optional[str] = None
+    auto_publish_enabled: Optional[bool] = None
+    autopilot_schedule: Optional[dict] = None

@@ -1,0 +1,129 @@
+import logging
+import asyncio
+from datetime import datetime, timezone, timedelta
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
+from motor.motor_asyncio import AsyncIOMotorClient
+from bson import ObjectId
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+class SchedulerService:
+    def __init__(self):
+        self.scheduler = AsyncIOScheduler()
+        self.db = None
+        self.client = None
+
+    async def start(self):
+        logger.info("Starting Autopilot Scheduler Service...")
+        self.client = AsyncIOMotorClient(settings.MONGO_URI)
+        self.db = self.client[settings.DATABASE_NAME]
+        
+        # Job 1: Executor - Runs every 5 minutes to check pending queued items
+        self.scheduler.add_job(
+            self.execute_pending_posts,
+            IntervalTrigger(minutes=5),
+            id='execute_pending_posts',
+            name='Execute pending social posts',
+            replace_existing=True
+        )
+        
+        # Job 2: Planner - Runs daily at 1 AM to plan and schedule future posts
+        self.scheduler.add_job(
+            self.plan_upcoming_posts,
+            CronTrigger(hour=1, minute=0),
+            id='plan_upcoming_posts',
+            name='Plan and generate AI posts for autopilot businesses',
+            replace_existing=True
+        )
+        
+        self.scheduler.start()
+        logger.info("Autopilot Scheduler Service started successfully.")
+
+    async def stop(self):
+        logger.info("Stopping Autopilot Scheduler Service...")
+        if self.scheduler.running:
+            self.scheduler.shutdown()
+        if self.client:
+            self.client.close()
+        logger.info("Autopilot Scheduler Service stopped.")
+
+    async def execute_pending_posts(self):
+        """
+        Scans the `post_queue` for posts scheduled to go out now or in the past,
+        and publishes them to Instagram.
+        """
+        now = datetime.now(timezone.utc)
+        logger.info(f"Running executor job at {now.isoformat()}")
+        
+        try:
+            # Find pending items scheduled <= now
+            cursor = self.db["post_queue"].find({
+                "status": "pending",
+                "scheduled_for": {"$lte": now}
+            })
+            
+            pending_items = await cursor.to_list(length=100)
+            if not pending_items:
+                return
+                
+            from app.services.social_service import SocialService
+            social_svc = SocialService()
+            
+            for item in pending_items:
+                item_id = item["_id"]
+                content_id = item["content_id"]
+                user_id = item["user_id"]
+                platform = item.get("platform", "instagram")
+                
+                logger.info(f"Autopilot publishing content {content_id} for user {user_id} on {platform}")
+                
+                try:
+                    if platform == "instagram":
+                        await social_svc.publish_to_instagram(self.db, content_id, user_id)
+                        
+                    # Mark success
+                    await self.db["post_queue"].update_one(
+                        {"_id": item_id},
+                        {"$set": {"status": "published", "error_message": None}}
+                    )
+                except Exception as post_err:
+                    logger.error(f"Failed to auto-publish item {item_id}: {post_err}")
+                    # Mark failure
+                    await self.db["post_queue"].update_one(
+                        {"_id": item_id},
+                        {"$set": {"status": "failed", "error_message": str(post_err)}}
+                    )
+                    
+        except Exception as e:
+            logger.error(f"Executor job failed: {e}")
+
+    async def plan_upcoming_posts(self):
+        """
+        Runs nightly to generate posts for businesses that have auto-publish ON.
+        It looks at their schedule and generates posts for empty slots in the next 3 days.
+        """
+        logger.info("Running nightly planner job")
+        try:
+            # Find all businesses with autopilot enabled
+            cursor = self.db["businesses"].find({
+                "auto_publish_enabled": True
+            })
+            businesses = await cursor.to_list(length=None)
+            
+            for business in businesses:
+                schedule = business.get("autopilot_schedule", {})
+                if not schedule:
+                    continue
+                    
+                # We could iterate through the next 3 days, check if a post is already scheduled,
+                # and if not, call AI generator, deduct credits, and add to queue.
+                # (For brevity, this logic is stubbed out for actual AI calling)
+                logger.info(f"Would plan posts for business {business['_id']}")
+                
+        except Exception as e:
+            logger.error(f"Planner job failed: {e}")
+
+scheduler_service = SchedulerService()

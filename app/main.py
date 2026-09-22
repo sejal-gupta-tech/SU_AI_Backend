@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection
+from app.services.scheduler_service import scheduler_service
 from app.api.api_router import api_router
 from app.api.endpoints.brand import router as brand_router
 from app.api.endpoints.products import router as products_router
@@ -14,13 +15,16 @@ from app.api.endpoints.reel import router as reel_router
 from app.api.endpoints.calendar import router as calendar_router
 from app.api.endpoints.credits import router as credits_router
 from app.api.endpoints.subscription import router as subscription_router
+from app.api.endpoints.autopilot import router as autopilot_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     connect_to_mongo()
+    await scheduler_service.start()
     yield
     # Shutdown
+    await scheduler_service.stop()
     close_mongo_connection()
 
 from fastapi.staticfiles import StaticFiles
@@ -73,6 +77,7 @@ app.include_router(reel_router)
 app.include_router(calendar_router)
 app.include_router(credits_router)
 app.include_router(subscription_router)
+app.include_router(autopilot_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
