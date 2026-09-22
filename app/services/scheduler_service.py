@@ -39,8 +39,19 @@ class SchedulerService:
             replace_existing=True
         )
         
+        # Job 3: Festival Engine - Runs every Monday at 2 AM to detect upcoming festivals
+        # and auto-generate draft campaigns for all businesses
+        self.scheduler.add_job(
+            self.run_festival_engine,
+            CronTrigger(hour=2, minute=0, day_of_week='mon'),
+            id='festival_engine',
+            name='Detect upcoming Indian festivals and generate campaigns',
+            replace_existing=True
+        )
+        
         self.scheduler.start()
         logger.info("Autopilot Scheduler Service started successfully.")
+
 
     async def stop(self):
         logger.info("Stopping Autopilot Scheduler Service...")
@@ -125,5 +136,18 @@ class SchedulerService:
                 
         except Exception as e:
             logger.error(f"Planner job failed: {e}")
+
+    async def run_festival_engine(self):
+        """
+        Weekly job: Detect upcoming Indian festivals and auto-generate
+        draft campaigns for all businesses that don't have one yet.
+        """
+        logger.info("Running Festival Engine job...")
+        try:
+            from app.services.festival_service import generate_all_upcoming_campaigns
+            count = await generate_all_upcoming_campaigns(self.db)
+            logger.info(f"Festival Engine: Generated {count} new campaign(s).")
+        except Exception as e:
+            logger.error(f"Festival Engine job failed: {e}")
 
 scheduler_service = SchedulerService()
