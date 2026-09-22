@@ -44,15 +44,22 @@ class ExternalAnalytics(BaseModel):
     """
     External platform metrics.
 
-    All values are null because the required Instagram / Facebook /
-    WhatsApp integrations are not implemented.  ``status`` indicates
-    the connection state so the frontend can render an appropriate UI.
+    status values:
+      - "instagram"   → fetched from real Instagram Graph API
+      - "facebook"    → fetched from real Facebook Graph API
+      - "estimated"   → intelligently estimated from internal activity data
+      - "not_connected" → no data available at all
+
+    reach, engagement etc. are None only when status="not_connected".
     """
     reach: Optional[int] = None
     engagement: Optional[int] = None
     leads: Optional[int] = None
     whatsapp_enquiries: Optional[int] = None
+    followers: Optional[int] = None
+    impressions: Optional[int] = None
     status: str = "not_connected"
+    last_synced: Optional[str] = None
 
 
 class DailyActivity(BaseModel):

@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.core.database import get_database
 from app.core.security import get_current_user
 from app.services.analytics_service import AnalyticsService, VALID_RANGES
+from app.services.social_analytics_service import SocialAnalyticsService
 
 logger = logging.getLogger(__name__)
 
@@ -75,4 +76,37 @@ async def get_analytics_overview(
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve analytics. Please try again later.",
+        )
+
+
+@router.post("/social-sync")
+async def sync_social_metrics(
+    current_user=Depends(get_current_user),
+):
+    """
+    Force-refresh social media metrics from real APIs (Instagram / Facebook).
+
+    - Clears the 1-hour cache and fetches fresh data.
+    - If the business has valid social tokens, real API data is returned.
+    - Otherwise, metrics are estimated from internal platform activity.
+
+    Returns:
+        The latest external metrics with a ``last_synced`` timestamp.
+    """
+    try:
+        db = get_database()
+        user_id = str(current_user.get("id") or current_user.id)
+        business_id = current_user.get("business_id")
+
+        social_svc = SocialAnalyticsService(db)
+        metrics = await social_svc.force_sync(
+            business_id=business_id,
+            user_id=user_id,
+        )
+        return {"success": True, "data": metrics}
+    except Exception as exc:
+        logger.error("Social sync failed for user %s: %s", current_user.get("id"), exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to sync social metrics. Please try again later.",
         )

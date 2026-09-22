@@ -45,6 +45,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from bson import ObjectId
+from app.services.social_analytics_service import SocialAnalyticsService
 
 logger = logging.getLogger(__name__)
 
@@ -153,14 +154,13 @@ class AnalyticsService:
             user_id, reel_filter, start_date, days,
         )
 
-        # ── External metrics (not connected) ─────────────────────────
-        external = {
-            "reach": None,
-            "engagement": None,
-            "leads": None,
-            "whatsapp_enquiries": None,
-            "status": "not_connected",
-        }
+        # ── External metrics (real API or smart estimation) ───────────
+        social_svc = SocialAnalyticsService(self.db)
+        external = await social_svc.get_external_metrics(
+            business_id=business_id,
+            user_id=user_id,
+            days=days,
+        )
 
         # ── Marketing score ──────────────────────────────────────────
         marketing_score = self._marketing_score(

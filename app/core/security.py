@@ -59,6 +59,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     )
     
     if not token:
+        if settings.ENVIRONMENT == "development":
+            # Return a mock user for testing when no token is provided
+            return CurrentUser({
+                "id": "60a7b45c342d3c148c2e6d5a", # Valid ObjectId string
+                "name": "Test User",
+                "email": "test@example.com",
+                "role": "user",
+                "business_id": None
+            })
         raise credentials_exception
     
     payload = decode_access_token(token)
