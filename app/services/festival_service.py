@@ -132,7 +132,7 @@ Create a complete festival campaign with the following assets. Output ONLY valid
       "id": "post_2",
       "type": "post",
       "platform": "instagram",
-      "day": 3,
+      "day": 5,
       "content": {{
         "headline": "Post headline here",
         "body": "Caption text with hashtags",
@@ -141,28 +141,6 @@ Create a complete festival campaign with the following assets. Output ONLY valid
     }},
     {{
       "id": "post_3",
-      "type": "post",
-      "platform": "facebook",
-      "day": 5,
-      "content": {{
-        "headline": "Facebook post headline",
-        "body": "Facebook caption with hashtags",
-        "image_prompt": "Image prompt"
-      }}
-    }},
-    {{
-      "id": "post_4",
-      "type": "post",
-      "platform": "instagram",
-      "day": 7,
-      "content": {{
-        "headline": "Story headline",
-        "body": "Story caption",
-        "image_prompt": "Story image prompt"
-      }}
-    }},
-    {{
-      "id": "post_5",
       "type": "post",
       "platform": "instagram",
       "day": 9,
@@ -176,7 +154,7 @@ Create a complete festival campaign with the following assets. Output ONLY valid
       "id": "reel_1",
       "type": "reel",
       "platform": "instagram",
-      "day": 2,
+      "day": 3,
       "content": {{
         "hook": "First 3 seconds hook text",
         "script": "Full reel script with scene descriptions",
@@ -185,51 +163,15 @@ Create a complete festival campaign with the following assets. Output ONLY valid
       }}
     }},
     {{
-      "id": "reel_2",
-      "type": "reel",
-      "platform": "instagram",
-      "day": 5,
-      "content": {{
-        "hook": "Hook text",
-        "script": "Reel script",
-        "voiceover": "Voiceover text",
-        "cta": "CTA text"
-      }}
-    }},
-    {{
-      "id": "reel_3",
-      "type": "reel",
-      "platform": "instagram",
-      "day": 8,
-      "content": {{
-        "hook": "Hook text",
-        "script": "Reel script",
-        "voiceover": "Voiceover text",
-        "cta": "CTA text"
-      }}
-    }},
-    {{
       "id": "ad_1",
       "type": "ad",
       "platform": "meta",
-      "day": 4,
+      "day": 2,
       "content": {{
         "headline": "Ad headline (max 40 chars)",
         "primary_text": "Ad primary text",
         "cta": "Shop Now",
         "image_prompt": "Ad creative image prompt"
-      }}
-    }},
-    {{
-      "id": "ad_2",
-      "type": "ad",
-      "platform": "meta",
-      "day": 9,
-      "content": {{
-        "headline": "Urgency ad headline",
-        "primary_text": "Urgency ad text",
-        "cta": "Order Now",
-        "image_prompt": "Ad image prompt"
       }}
     }},
     {{
