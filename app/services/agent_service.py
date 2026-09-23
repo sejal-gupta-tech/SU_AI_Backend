@@ -162,6 +162,8 @@ Analyze the command and output ONLY a JSON object with the following schema:
   "reply": "If unknown, a short polite reply in Hinglish asking for clarification"
 }
 
+Note: If the user asks for just an image or photo (e.g., "give me an image of..."), map the action to "create_post".
+
 Example: "Bhai mere kapde ke business ke liye ek zabardast reel bana"
 Output: {"action": "create_reel", "topic": "kapde ka business", "tone": "zabardast", "platform": "instagram"}
         """
