@@ -7,3 +7,4 @@ class User(MongoBaseModel):
     email: EmailStr
     hashed_password: str
     role: str = "user"
+    email_verified: bool = True
