@@ -1,33 +1,47 @@
-from fastapi import APIRouter, Depends, status
-from app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse
-from app.services.auth_service import AuthService
-from app.core.security import create_access_token, get_current_user
+from fastapi import APIRouter, Depends, status, Request
+from fastapi.responses import JSONResponse
+from app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse, OTPVerifyRequest, OTPResendRequest
+from app.services.auth_service import AuthService, EmailNotVerifiedException
+from app.core.security import create_access_token, get_current_user, CurrentUser
 from app.models.user import User
 
 router = APIRouter()
 
-@router.post("/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/signup", status_code=status.HTTP_201_CREATED)
 async def signup(user_in: UserCreate):
-    user = await AuthService.create_user(user_in)
-    
-    # Generate JWT
+    await AuthService.handle_signup(user_in)
+    return {"detail": "OTP verification required."}
+
+@router.post("/verify-otp", response_model=TokenResponse)
+async def verify_otp(request: OTPVerifyRequest):
+    user = await AuthService.verify_otp(request.email, request.otp)
     access_token = create_access_token(subject=str(user.id))
-    
     return TokenResponse(
         access_token=access_token,
         user=UserResponse(
             id=str(user.id),
             name=user.name,
             email=user.email,
-            role=getattr(user, "role", "user")
+            role=getattr(user, "role", "user"),
+            email_verified=True
         )
     )
 
+@router.post("/resend-otp")
+async def resend_otp(request: OTPResendRequest):
+    await AuthService.resend_otp(request.email)
+    return {"detail": "OTP resent successfully."}
+
 @router.post("/login", response_model=TokenResponse)
 async def login(user_in: UserLogin):
-    user = await AuthService.authenticate_user(user_in)
+    try:
+        user = await AuthService.authenticate_user(user_in)
+    except EmailNotVerifiedException as e:
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"detail": str(e), "code": "EMAIL_NOT_VERIFIED"}
+        )
     
-    # Generate JWT
     access_token = create_access_token(subject=str(user.id))
     
     return TokenResponse(
@@ -36,27 +50,32 @@ async def login(user_in: UserLogin):
             id=str(user.id),
             name=user.name,
             email=user.email,
-            role=getattr(user, "role", "user")
+            role=getattr(user, "role", "user"),
+            email_verified=getattr(user, "email_verified", True)
         )
     )
 
 from fastapi.security import OAuth2PasswordRequestForm
 @router.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    # Convert form_data to UserLogin model so we can reuse our logic
     user_in = UserLogin(email=form_data.username, password=form_data.password)
-    user = await AuthService.authenticate_user(user_in)
+    try:
+        user = await AuthService.authenticate_user(user_in)
+    except EmailNotVerifiedException as e:
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"detail": str(e), "code": "EMAIL_NOT_VERIFIED"}
+        )
     
-    # Generate JWT
     access_token = create_access_token(subject=str(user.id))
-    
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user)):
+async def get_me(current_user: CurrentUser = Depends(get_current_user)):
     return UserResponse(
-        id=str(current_user.id),
-        name=current_user.name,
-        email=current_user.email,
-        role=getattr(current_user, "role", "user")
+        id=current_user["id"],
+        name=current_user["name"],
+        email=current_user["email"],
+        role=current_user["role"],
+        email_verified=current_user.get("email_verified", True)
     )

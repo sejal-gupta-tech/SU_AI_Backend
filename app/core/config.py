@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "mock"
     GROQ_API_KEY: str | None = None
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    
+    # SMTP Configuration
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_FROM_EMAIL: str = "noreply@sevenunique.com"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

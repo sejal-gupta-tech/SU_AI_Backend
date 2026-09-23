@@ -66,6 +66,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
                 "name": "Test User",
                 "email": "test@example.com",
                 "role": "user",
+                "email_verified": True,
                 "business_id": None
             })
         raise credentials_exception
@@ -92,11 +93,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         "name": user_doc.get("name", "Unknown"),
         "email": user_doc.get("email", ""),
         "role": user_doc.get("role", "user"),
+        "email_verified": user_doc.get("email_verified", True),
         "business_id": str(business["_id"]) if business else None
     })
 
 async def require_admin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
-    if settings.ENVIRONMENT != "development" and current_user.get("role") != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
