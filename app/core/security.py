@@ -65,7 +65,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
                 "id": "60a7b45c342d3c148c2e6d5a", # Valid ObjectId string
                 "name": "Test User",
                 "email": "test@example.com",
-                "role": "user",
+                "role": "admin",
                 "email_verified": True,
                 "business_id": None
             })
