@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # AI Configuration
     AI_PROVIDER: str = "mock"
     GROQ_API_KEY: str | None = None
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL: str = "llama-3.1-70b-versatile"
     
     # SMTP Configuration
     SMTP_HOST: str | None = None
