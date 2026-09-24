@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     AI_PROVIDER: str = "mock"
     GROQ_API_KEY: str | None = None
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
+    # Fashion AI Configuration
+    FASHION_IMAGE_PROVIDER: str = "pollinations"  # pollinations | replicate | custom
+    FASHION_IMAGE_API_KEY: str | None = None
+    VIRTUAL_TRYON_PROVIDER: str = ""  # fashn_ai | replicate | huggingface
+    VIRTUAL_TRYON_API_KEY: str | None = None
     
     # SMTP Configuration
     SMTP_HOST: str | None = None

@@ -19,6 +19,8 @@ class CreditService:
         "image_generation": 1,
         "photoshoot": 2,
         "reel_generation": 3,
+        "fashion_photoshoot": 2,
+        "fashion_tryon": 3,
     }
 
     @staticmethod
