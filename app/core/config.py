@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # AI Configuration
     AI_PROVIDER: str = "mock"
     GROQ_API_KEY: str | None = None
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL: str = "llama-3.1-70b-versatile"
 
     # Fashion AI Configuration
     FASHION_IMAGE_PROVIDER: str = "pollinations"  # pollinations | replicate | custom
@@ -57,3 +57,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
