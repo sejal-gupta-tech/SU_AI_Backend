@@ -9,7 +9,6 @@ from app.api.api_router import api_router
 from app.api.endpoints.brand import router as brand_router
 from app.api.endpoints.products import router as products_router
 from app.api.endpoints import content, insights, messages, reviews, social
-from app.api.endpoints.photoshoot import router as photoshoot_router
 from app.api.endpoints.ad import router as ad_router
 from app.api.endpoints.reel import router as reel_router
 from app.api.endpoints.calendar import router as calendar_router
@@ -74,7 +73,6 @@ app.include_router(
     tags=["Reviews"]
 )
 
-app.include_router(photoshoot_router)
 app.include_router(ad_router)
 app.include_router(reel_router)
 app.include_router(calendar_router)
