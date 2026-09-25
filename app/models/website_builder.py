@@ -27,6 +27,6 @@ class WebsiteBuilderSession(MongoBaseModel):
     collected_data: Dict[str, Any] = Field(default_factory=dict)
     missing_fields: List[str] = Field(default_factory=list)
     recommendations: List[Dict[str, Any]] = Field(default_factory=list)
-    selected_template: Optional[str] = None
+    selected_template: Optional[Any] = None
     website_project_id: Optional[str] = None
     status: str = "active"

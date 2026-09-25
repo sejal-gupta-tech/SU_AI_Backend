@@ -8,23 +8,6 @@ router = APIRouter(
     tags=["Social"]
 )
 
-@router.post("/publish-whatsapp/{content_id}")
-async def publish_whatsapp(
-    content_id: str,
-    target_phone: str = Body(..., embed=True),
-    current_user = Depends(get_current_user),
-    db = Depends(get_database)
-):
-    business_id = str(current_user["business_id"])
-    
-    result = await SocialService.publish_to_whatsapp(
-        db=db,
-        business_id=business_id,
-        content_id=content_id,
-        target_phone=target_phone
-    )
-    
-    return {"success": True, "message": "Successfully sent to WhatsApp", "data": result}
 
 @router.post("/publish-instagram/{content_id}")
 async def publish_instagram(

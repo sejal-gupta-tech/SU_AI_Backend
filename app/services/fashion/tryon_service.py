@@ -205,12 +205,26 @@ class VirtualTryOnProvider:
             import uuid
             
             # 1. Download images to temp files so Gradio client can upload them
-            async with httpx.AsyncClient() as client:
-                person_res = await client.get(person_image_url if person_image_url.startswith("http") else f"http://127.0.0.1:8000{person_image_url}")
-                person_res.raise_for_status()
+            import asyncio
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+            async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+                person_url = person_image_url if person_image_url.startswith("http") else f"http://127.0.0.1:8000{person_image_url}"
+                for _ in range(5):
+                    person_res = await client.get(person_url)
+                    if person_res.status_code == 429:
+                        await asyncio.sleep(2)
+                        continue
+                    person_res.raise_for_status()
+                    break
                 
-                garment_res = await client.get(garment_image_url if garment_image_url.startswith("http") else f"http://127.0.0.1:8000{garment_image_url}")
-                garment_res.raise_for_status()
+                garment_url = garment_image_url if garment_image_url.startswith("http") else f"http://127.0.0.1:8000{garment_image_url}"
+                for _ in range(5):
+                    garment_res = await client.get(garment_url)
+                    if garment_res.status_code == 429:
+                        await asyncio.sleep(2)
+                        continue
+                    garment_res.raise_for_status()
+                    break
                 
             import tempfile
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as fp_person:
